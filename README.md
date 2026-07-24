@@ -15,7 +15,9 @@
 
 ## 下载安装
 
-直接从 [Releases](../../releases) 页面下载最新版本的 `AI 文档阅读器 x.x.x.exe`,双击即可运行,无需安装。
+直接从 [Releases](../../releases) 页面下载最新版本的 `AI 文档阅读器 Setup x.x.x.exe`,双击按向导安装即可运行。
+
+> **系统要求**:Windows 7 / 8 / 8.1 / 10 / 11 (x64)
 
 ## 快速开始
 
@@ -54,8 +56,8 @@ LLM_MAX_CONTEXT_LENGTH=8000
 
 ### 环境要求
 
-- Node.js 18+
-- Windows(当前主要支持平台)
+- Node.js 16+
+- Windows 7 / 8 / 8.1 / 10 / 11 (x64)
 
 ### 安装依赖
 
@@ -113,13 +115,14 @@ ai-document-reader/
 
 ## 技术栈
 
-- Electron 31
+- Electron 22
 - Node.js
 - HTML / CSS / JavaScript
 - pdf-parse
 - word-extractor
 - electron-store
 - electron-builder
+- node-fetch
 
 ## 支持格式与边界
 
