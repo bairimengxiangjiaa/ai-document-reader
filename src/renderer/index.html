@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 文档阅读器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 左侧文件列表 -->
+    <aside class="sidebar" id="file-sidebar">
+      <div class="sidebar-header">
+        <h2>文档列表</h2>
+      </div>
+      <div class="sidebar-actions">
+        <button id="btn-open-files" class="btn btn-primary">打开文件</button>
+        <button id="btn-open-folder" class="btn btn-secondary">打开文件夹</button>
+      </div>
+      <ul class="file-list" id="file-list">
+        <!-- 文件项由 JS 动态生成 -->
+      </ul>
+    </aside>
+
+    <!-- 中间文档阅读区 -->
+    <main class="document-area">
+      <div class="document-toolbar">
+        <span id="current-file-name">未选择文档</span>
+      </div>
+      <div class="document-content" id="document-content">
+        <div class="empty-state">
+          <p>请从左侧选择或打开一个文档</p>
+        </div>
+      </div>
+      <!-- 划词后的浮动按钮 -->
+      <button id="selection-float-btn" class="selection-float-btn hidden">问 AI</button>
+    </main>
+
+    <!-- 右侧 AI 聊天面板 -->
+    <aside class="chat-panel" id="chat-panel">
+      <div class="chat-header">
+        <h2>AI 助手</h2>
+        <button id="btn-config" class="btn btn-icon" title="模型配置">⚙️</button>
+      </div>
+      <div class="chat-actions">
+        <button id="btn-summarize" class="btn btn-summary" disabled>总结全文</button>
+        <button id="btn-clear-chat" class="btn btn-secondary" disabled>清空对话</button>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-welcome">
+          <p>打开文档后,你可以:</p>
+          <ul>
+            <li>点击"总结全文"获取文档概要</li>
+            <li>在文档中划选文字,点击"问 AI"</li>
+            <li>在下方输入框直接提问</li>
+          </ul>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" placeholder="输入问题,按 Enter 发送..." rows="3" disabled></textarea>
+        <button id="btn-send" class="btn btn-primary" disabled>发送</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 配置弹窗 -->
+  <div id="config-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>模型配置</h3>
+        <button id="btn-close-config" class="btn btn-icon">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="config-base-url">Base URL</label>
+          <input type="text" id="config-base-url" placeholder="https://open.bigmodel.cn/api/paas/v4">
+        </div>
+        <div class="form-group">
+          <label for="config-api-key">API Key</label>
+          <input type="password" id="config-api-key" placeholder="your-api-key">
+        </div>
+        <div class="form-group">
+          <label for="config-model">模型名称</label>
+          <input type="text" id="config-model" placeholder="glm-4-flash">
+        </div>
+        <div class="form-group">
+          <label for="config-max-length">最大上下文长度</label>
+          <input type="number" id="config-max-length" placeholder="8000">
+        </div>
+        <div class="form-tip">
+          支持智谱 GLM、DeepSeek、通义千问等 OpenAI 兼容接口。
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-save-config" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
