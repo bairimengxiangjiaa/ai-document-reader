@@ -37,11 +37,15 @@ function createWindow() {
   mainWindow = new BrowserWindow(windowOptions);
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
-  // 恢复最大化状态
-  const { maximized } = getBrowserWindowOptions();
-  if (maximized) {
-    mainWindow.maximize();
-  }
+  // 页面准备好后再显示窗口，避免白屏闪烁
+  mainWindow.once('ready-to-show', () => {
+    // 恢复最大化状态
+    const { maximized } = getBrowserWindowOptions();
+    if (maximized) {
+      mainWindow.maximize();
+    }
+    mainWindow.show();
+  });
 
   // 窗口状态变化时保存
   mainWindow.on('close', () => saveWindowState(mainWindow));

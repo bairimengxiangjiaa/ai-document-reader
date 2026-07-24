@@ -14,7 +14,7 @@
     "appId": "com.yourcompany.ai-document-reader",
     "productName": "AI 文档阅读器",
     "directories": {
-      "output": "release"
+      "output": "release-v3"
     },
     "files": [
       "src/**/*",
@@ -25,19 +25,23 @@
     "win": {
       "target": [
         {
-          "target": "portable",
-          "arch": ["x64"]
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
         }
-      ]
+      ],
+      "forceCodeSigning": false
     }
   },
   "devDependencies": {
-    "electron": "^31.0.0",
-    "electron-builder": "^26.15.3"
+    "electron": "^22.3.27",
+    "electron-builder": "^24.13.3"
   },
   "dependencies": {
     "dotenv": "^16.4.0",
     "electron-store": "^8.2.0",
+    "node-fetch": "^2.7.0",
     "pdf-parse": "^1.1.1",
     "word-extractor": "^1.0.4"
   }

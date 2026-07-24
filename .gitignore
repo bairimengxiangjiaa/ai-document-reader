@@ -2,5 +2,8 @@ node_modules/
 .env
 dist/
 release/
+release-v2/
+release-v3/
+release-old-locked/
 *.log
 .DS_Store
