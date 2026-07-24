@@ -5,6 +5,10 @@ require('dotenv').config();
 const { readFile, listSupportedFiles } = require('./file-handler');
 const { ContextStore } = require('./context-store');
 const { LLMClient } = require('./llm-client');
+const {
+  saveWindowState,
+  getBrowserWindowOptions
+} = require('./window-state');
 
 let mainWindow;
 
@@ -16,9 +20,8 @@ const llmClient = new LLMClient();
  * 创建主窗口
  */
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+  const windowOptions = {
+    ...getBrowserWindowOptions(),
     minWidth: 900,
     minHeight: 600,
     title: 'AI 文档阅读器',
@@ -29,9 +32,21 @@ function createWindow() {
       // 允许在渲染进程中使用 fetch(默认已开启)
       sandbox: false
     }
-  });
+  };
 
+  mainWindow = new BrowserWindow(windowOptions);
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+
+  // 恢复最大化状态
+  const { maximized } = getBrowserWindowOptions();
+  if (maximized) {
+    mainWindow.maximize();
+  }
+
+  // 窗口状态变化时保存
+  mainWindow.on('close', () => saveWindowState(mainWindow));
+  mainWindow.on('resize', () => saveWindowState(mainWindow));
+  mainWindow.on('move', () => saveWindowState(mainWindow));
 
   // 生产环境可取消下方注释以禁用开发者工具
   // mainWindow.webContents.openDevTools();
@@ -58,7 +73,7 @@ ipcMain.handle('open-files', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: '支持的文档', extensions: ['pdf', 'docx', 'txt', 'md'] },
+      { name: '支持的文档', extensions: ['pdf', 'doc', 'docx', 'txt', 'md'] },
       { name: '所有文件', extensions: ['*'] }
     ]
   });
@@ -116,6 +131,13 @@ ipcMain.handle('summarize', async (event, { filePath }) => {
   const answer = await llmClient.chat(messages);
   contextStore.addAssistantMessage(filePath, answer);
   return answer;
+});
+
+/**
+ * 获取指定文档的历史消息
+ */
+ipcMain.handle('get-messages', (event, filePath) => {
+  return contextStore.getMessages(filePath);
 });
 
 /**

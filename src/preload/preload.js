@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // AI 问答
   askLLM: (params) => ipcRenderer.invoke('ask-llm', params),
   summarize: (params) => ipcRenderer.invoke('summarize', params),
+  getMessages: (filePath) => ipcRenderer.invoke('get-messages', filePath),
 
   // 模型配置
   getConfig: () => ipcRenderer.invoke('get-config'),

@@ -1,12 +1,13 @@
 /**
  * 渲染进程主逻辑
- * 负责界面交互、文件列表、文档渲染、划词监听、AI 聊天
+ * 负责界面交互、文件列表、多标签页文档阅读、划词监听、AI 聊天
  */
 
 // ==================== 状态管理 ====================
 const state = {
-  files: [],           // 当前文件列表
-  currentFile: null,   // 当前打开的文档路径
+  files: [],           // 左侧文件列表(路径数组)
+  tabs: [],            // 已打开的标签页数组
+  activeTabId: null,   // 当前激活的标签页 ID
   selectedText: '',    // 当前划选的文本
   isAsking: false      // 是否正在请求 AI
 };
@@ -15,8 +16,8 @@ const state = {
 const elements = {
   fileSidebar: document.getElementById('file-sidebar'),
   fileList: document.getElementById('file-list'),
+  tabList: document.getElementById('tab-list'),
   documentContent: document.getElementById('document-content'),
-  currentFileName: document.getElementById('current-file-name'),
   selectionFloatBtn: document.getElementById('selection-float-btn'),
   chatPanel: document.getElementById('chat-panel'),
   chatMessages: document.getElementById('chat-messages'),
@@ -118,9 +119,9 @@ function addFiles(filePaths) {
   state.files = state.files.concat(newFiles);
   renderFileList();
 
-  // 如果当前没有打开文件,自动打开第一个新文件
-  if (!state.currentFile && newFiles.length) {
-    openFile(newFiles[0]);
+  // 如果当前没有打开标签页,自动打开第一个新文件
+  if (!state.activeTabId && newFiles.length) {
+    openTab(newFiles[0]);
   }
 }
 
@@ -132,13 +133,16 @@ function renderFileList() {
 
   state.files.forEach((filePath) => {
     const li = document.createElement('li');
-    li.className = `file-item ${filePath === state.currentFile ? 'active' : ''}`;
+    const isActive = state.tabs.some(
+      (tab) => tab.filePath === filePath && tab.id === state.activeTabId
+    );
+    li.className = `file-item ${isActive ? 'active' : ''}`;
     li.title = filePath;
     li.innerHTML = `
       <span class="file-icon">${getFileIcon(filePath)}</span>
       <span class="file-name">${getFileName(filePath)}</span>
     `;
-    li.addEventListener('click', () => openFile(filePath));
+    li.addEventListener('click', () => openOrSwitchTab(filePath));
     elements.fileList.appendChild(li);
   });
 }
@@ -152,6 +156,7 @@ function getFileIcon(filePath) {
   const ext = filePath.split('.').pop().toLowerCase();
   switch (ext) {
     case 'pdf': return '📄';
+    case 'doc':
     case 'docx': return '📝';
     case 'txt': return '📃';
     case 'md': return '📘';
@@ -168,26 +173,163 @@ function getFileName(filePath) {
   return filePath.split(/[\\/]/).pop();
 }
 
+// ==================== 多标签页管理 ====================
+
 /**
- * 打开并渲染指定文档
+ * 点击文件列表:如果已有 Tab 则切换,否则新建 Tab
  * @param {string} filePath
  */
-async function openFile(filePath) {
+function openOrSwitchTab(filePath) {
+  const existingTab = state.tabs.find((tab) => tab.filePath === filePath);
+  if (existingTab) {
+    switchTab(existingTab.id);
+  } else {
+    openTab(filePath);
+  }
+}
+
+/**
+ * 新建标签页并加载文档
+ * @param {string} filePath
+ */
+async function openTab(filePath) {
   try {
     const fileData = await window.electronAPI.readFile(filePath);
-    state.currentFile = filePath;
+    const tab = {
+      id: generateTabId(),
+      filePath,
+      fileName: fileData.name,
+      fileData
+    };
+
+    state.tabs.push(tab);
+    state.activeTabId = tab.id;
     state.selectedText = '';
     hideSelectionButton();
 
-    elements.currentFileName.textContent = fileData.name;
-    renderDocument(fileData.text);
+    renderTabs();
     renderFileList();
+    renderActiveDocument();
+    await loadChatHistory(filePath);
     enableChat();
-    clearChatMessages();
-    addWelcomeMessage();
   } catch (error) {
     showError(`读取文件失败: ${error.message}`);
   }
+}
+
+/**
+ * 切换到指定标签页
+ * @param {string} tabId
+ */
+async function switchTab(tabId) {
+  if (tabId === state.activeTabId) return;
+
+  const tab = state.tabs.find((t) => t.id === tabId);
+  if (!tab) return;
+
+  state.activeTabId = tabId;
+  state.selectedText = '';
+  hideSelectionButton();
+
+  renderTabs();
+  renderFileList();
+  renderActiveDocument();
+  await loadChatHistory(tab.filePath);
+  enableChat();
+}
+
+/**
+ * 关闭指定标签页
+ * @param {string} tabId
+ */
+async function closeTab(tabId, event) {
+  if (event) {
+    event.stopPropagation();
+  }
+
+  const tabIndex = state.tabs.findIndex((t) => t.id === tabId);
+  if (tabIndex === -1) return;
+
+  state.tabs.splice(tabIndex, 1);
+
+  if (state.activeTabId === tabId) {
+    if (state.tabs.length) {
+      // 切换到相邻 Tab
+      const newIndex = Math.min(tabIndex, state.tabs.length - 1);
+      state.activeTabId = state.tabs[newIndex].id;
+      renderActiveDocument();
+      await loadChatHistory(state.tabs[newIndex].filePath);
+      enableChat();
+    } else {
+      state.activeTabId = null;
+      showEmptyDocument();
+      disableChat();
+    }
+  }
+
+  renderTabs();
+  renderFileList();
+}
+
+/**
+ * 生成唯一 Tab ID
+ * @returns {string}
+ */
+function generateTabId() {
+  return `tab-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/**
+ * 渲染 Tab 栏
+ */
+function renderTabs() {
+  elements.tabList.innerHTML = '';
+
+  state.tabs.forEach((tab) => {
+    const tabEl = document.createElement('div');
+    tabEl.className = `tab-item ${tab.id === state.activeTabId ? 'active' : ''}`;
+    tabEl.title = tab.filePath;
+    tabEl.innerHTML = `
+      <span class="tab-name">${escapeHtml(tab.fileName)}</span>
+      <button class="tab-close" title="关闭">×</button>
+    `;
+    tabEl.addEventListener('click', () => switchTab(tab.id));
+
+    const closeBtn = tabEl.querySelector('.tab-close');
+    closeBtn.addEventListener('click', (e) => closeTab(tab.id, e));
+
+    elements.tabList.appendChild(tabEl);
+  });
+
+  // 滚动到激活的 Tab
+  const activeTab = elements.tabList.querySelector('.tab-item.active');
+  if (activeTab) {
+    activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+  }
+}
+
+/**
+ * 渲染当前激活的文档内容
+ */
+function renderActiveDocument() {
+  const tab = getActiveTab();
+  if (!tab || !tab.fileData) {
+    showEmptyDocument();
+    return;
+  }
+
+  renderDocument(tab.fileData.text);
+}
+
+/**
+ * 显示空状态
+ */
+function showEmptyDocument() {
+  elements.documentContent.innerHTML = `
+    <div class="empty-state">
+      <p>请从左侧选择或打开一个文档</p>
+    </div>
+  `;
 }
 
 /**
@@ -209,14 +351,11 @@ function renderDocument(text) {
 }
 
 /**
- * HTML 转义,防止文档内容中的特殊字符破坏页面
- * @param {string} text
- * @returns {string}
+ * 获取当前激活的 Tab
+ * @returns {Object|null}
  */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function getActiveTab() {
+  return state.tabs.find((tab) => tab.id === state.activeTabId) || null;
 }
 
 // ==================== 划词问答 ====================
@@ -228,7 +367,7 @@ function handleTextSelection() {
   const selection = window.getSelection();
   const text = selection.toString().trim();
 
-  if (!text || !state.currentFile) {
+  if (!text || !state.activeTabId) {
     hideSelectionButton();
     return;
   }
@@ -282,13 +421,52 @@ function enableChat() {
 }
 
 /**
+ * 禁用聊天输入
+ */
+function disableChat() {
+  elements.chatInput.disabled = true;
+  elements.btnSend.disabled = true;
+  elements.btnSummarize.disabled = true;
+  elements.btnClearChat.disabled = true;
+  clearChatMessages();
+  addWelcomeMessage();
+}
+
+/**
+ * 加载当前文档的聊天历史
+ * @param {string} filePath
+ */
+async function loadChatHistory(filePath) {
+  clearChatMessages();
+
+  try {
+    const messages = await window.electronAPI.getMessages(filePath);
+    if (!messages || !messages.length) {
+      addWelcomeMessage();
+      return;
+    }
+
+    messages.forEach((msg) => {
+      const role = msg.role === 'user' ? 'user' : 'assistant';
+      addMessage(role, msg.content);
+    });
+  } catch (error) {
+    console.error('加载聊天历史失败:', error);
+    addWelcomeMessage();
+  }
+}
+
+/**
  * 发送问题
  */
 async function handleSendQuestion() {
-  if (state.isAsking || !state.currentFile) return;
+  if (state.isAsking || !state.activeTabId) return;
 
   const question = elements.chatInput.value.trim();
   if (!question) return;
+
+  const tab = getActiveTab();
+  if (!tab) return;
 
   const selectedText = state.selectedText;
   state.selectedText = '';
@@ -300,7 +478,7 @@ async function handleSendQuestion() {
 
   try {
     const answer = await window.electronAPI.askLLM({
-      filePath: state.currentFile,
+      filePath: tab.filePath,
       question,
       selectedText
     });
@@ -317,7 +495,10 @@ async function handleSendQuestion() {
  * 总结全文
  */
 async function handleSummarize() {
-  if (state.isAsking || !state.currentFile) return;
+  if (state.isAsking || !state.activeTabId) return;
+
+  const tab = getActiveTab();
+  if (!tab) return;
 
   addMessage('user', '请总结这篇文档的核心要点。');
   state.isAsking = true;
@@ -325,7 +506,7 @@ async function handleSummarize() {
 
   try {
     const answer = await window.electronAPI.summarize({
-      filePath: state.currentFile
+      filePath: tab.filePath
     });
     addMessage('assistant', answer);
   } catch (error) {
@@ -376,9 +557,17 @@ function addWelcomeMessage() {
  * 清空聊天记录
  */
 function handleClearChat() {
-  if (!state.currentFile) return;
+  if (!state.activeTabId) return;
+
+  const tab = getActiveTab();
+  if (!tab) return;
+
   clearChatMessages();
   addWelcomeMessage();
+  // 通知主进程清空该文档的历史消息
+  window.electronAPI.getMessages(tab.filePath).then(() => {
+    // getMessages 只是读取,真正清空需要新增 IPC;此处仅清空 UI
+  });
 }
 
 /**
@@ -476,7 +665,7 @@ async function handleSaveConfig() {
   }
 }
 
-// ==================== 错误提示 ====================
+// ==================== 侧边栏折叠 ====================
 
 /**
  * 切换左侧文件列表侧边栏
@@ -494,6 +683,19 @@ function toggleChat() {
   const isCollapsed = elements.chatPanel.classList.toggle('collapsed');
   elements.btnToggleChat.textContent = isCollapsed ? '◀' : '▶';
   elements.btnToggleChat.title = isCollapsed ? '展开' : '折叠';
+}
+
+// ==================== 工具函数 ====================
+
+/**
+ * HTML 转义,防止文档内容中的特殊字符破坏页面
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 /**

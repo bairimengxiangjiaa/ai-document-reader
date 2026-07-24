@@ -2,16 +2,42 @@
   "name": "ai-document-reader",
   "version": "1.0.0",
   "description": "AI document reader with chat and summary support",
+  "author": "AI Document Reader Team",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node tests/file-handler.test.js && node tests/context-store.test.js"
+    "test": "node tests/file-handler.test.js && node tests/context-store.test.js && node tests/tab-manager.test.js",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.yourcompany.ai-document-reader",
+    "productName": "AI 文档阅读器",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "docs/**/*",
+      ".env.example",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    }
   },
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {
     "dotenv": "^16.4.0",
+    "electron-store": "^8.2.0",
     "pdf-parse": "^1.1.1",
     "word-extractor": "^1.0.4"
   }
