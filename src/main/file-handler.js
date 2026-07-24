@@ -1,10 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const pdfParse = require('pdf-parse');
-const mammoth = require('mammoth');
+const WordExtractor = require('word-extractor');
+
+// 初始化 Word 提取器,支持 .doc 和 .docx
+const wordExtractor = new WordExtractor();
 
 // 支持的文件扩展名列表
-const SUPPORTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
+const SUPPORTED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt', '.md'];
 
 /**
  * 判断文件是否受支持
@@ -40,10 +43,10 @@ async function readFile(filePath) {
       const buffer = fs.readFileSync(filePath);
       const data = await pdfParse(buffer);
       text = data.text || '';
-    } else if (ext === '.docx') {
-      // 读取 Word 文档并提取纯文本
-      const result = await mammoth.extractRawText({ path: filePath });
-      text = result.value || '';
+    } else if (ext === '.doc' || ext === '.docx') {
+      // 使用 word-extractor 读取 Word 文档(.doc 和 .docx)
+      const extracted = await wordExtractor.extract(filePath);
+      text = extracted.getBody() || '';
     } else if (ext === '.txt' || ext === '.md') {
       // 文本文件直接按 UTF-8 读取
       text = fs.readFileSync(filePath, 'utf-8');

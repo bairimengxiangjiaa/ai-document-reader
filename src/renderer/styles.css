@@ -45,6 +45,24 @@ button {
   font-weight: 600;
 }
 
+/* 折叠状态 */
+.sidebar.collapsed {
+  width: 40px;
+  min-width: 40px;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-header h2,
+.sidebar.collapsed .sidebar-actions,
+.sidebar.collapsed .file-list {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 12px 0;
+}
+
 .sidebar-actions {
   padding: 12px;
   display: flex;
@@ -168,6 +186,29 @@ button {
 .chat-header h2 {
   font-size: 16px;
   font-weight: 600;
+}
+
+/* 折叠状态 */
+.chat-panel.collapsed {
+  width: 40px;
+  min-width: 40px;
+  overflow: hidden;
+}
+
+.chat-panel.collapsed .chat-actions,
+.chat-panel.collapsed .chat-messages,
+.chat-panel.collapsed .chat-input-area,
+.chat-panel.collapsed .chat-header #btn-config {
+  display: none;
+}
+
+.chat-panel.collapsed .chat-header {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.chat-panel.collapsed .chat-header h2 {
+  display: none;
 }
 
 .chat-actions {

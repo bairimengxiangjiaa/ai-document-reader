@@ -13,10 +13,12 @@ const state = {
 
 // ==================== DOM 元素 ====================
 const elements = {
+  fileSidebar: document.getElementById('file-sidebar'),
   fileList: document.getElementById('file-list'),
   documentContent: document.getElementById('document-content'),
   currentFileName: document.getElementById('current-file-name'),
   selectionFloatBtn: document.getElementById('selection-float-btn'),
+  chatPanel: document.getElementById('chat-panel'),
   chatMessages: document.getElementById('chat-messages'),
   chatInput: document.getElementById('chat-input'),
   btnSend: document.getElementById('btn-send'),
@@ -24,6 +26,8 @@ const elements = {
   btnClearChat: document.getElementById('btn-clear-chat'),
   btnOpenFiles: document.getElementById('btn-open-files'),
   btnOpenFolder: document.getElementById('btn-open-folder'),
+  btnToggleSidebar: document.getElementById('btn-toggle-sidebar'),
+  btnToggleChat: document.getElementById('btn-toggle-chat'),
   btnConfig: document.getElementById('btn-config'),
   configModal: document.getElementById('config-modal'),
   btnCloseConfig: document.getElementById('btn-close-config'),
@@ -47,6 +51,10 @@ function bindEvents() {
   // 文件操作
   elements.btnOpenFiles.addEventListener('click', handleOpenFiles);
   elements.btnOpenFolder.addEventListener('click', handleOpenFolder);
+
+  // 侧边栏折叠
+  elements.btnToggleSidebar.addEventListener('click', toggleSidebar);
+  elements.btnToggleChat.addEventListener('click', toggleChat);
 
   // AI 操作
   elements.btnSend.addEventListener('click', handleSendQuestion);
@@ -469,6 +477,24 @@ async function handleSaveConfig() {
 }
 
 // ==================== 错误提示 ====================
+
+/**
+ * 切换左侧文件列表侧边栏
+ */
+function toggleSidebar() {
+  const isCollapsed = elements.fileSidebar.classList.toggle('collapsed');
+  elements.btnToggleSidebar.textContent = isCollapsed ? '▶' : '◀';
+  elements.btnToggleSidebar.title = isCollapsed ? '展开' : '折叠';
+}
+
+/**
+ * 切换右侧 AI 聊天侧边栏
+ */
+function toggleChat() {
+  const isCollapsed = elements.chatPanel.classList.toggle('collapsed');
+  elements.btnToggleChat.textContent = isCollapsed ? '◀' : '▶';
+  elements.btnToggleChat.title = isCollapsed ? '展开' : '折叠';
+}
 
 /**
  * 显示错误信息

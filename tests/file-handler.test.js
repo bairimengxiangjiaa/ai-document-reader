@@ -22,6 +22,7 @@ console.log('运行 file-handler 测试...\n');
   // 测试 1: 判断文件格式支持
   {
     assert.strictEqual(isSupported('/docs/test.pdf'), true);
+    assert.strictEqual(isSupported('/docs/test.doc'), true);
     assert.strictEqual(isSupported('/docs/test.docx'), true);
     assert.strictEqual(isSupported('/docs/test.txt'), true);
     assert.strictEqual(isSupported('/docs/test.exe'), false);

@@ -11,8 +11,8 @@
     "electron": "^31.0.0"
   },
   "dependencies": {
+    "dotenv": "^16.4.0",
     "pdf-parse": "^1.1.1",
-    "mammoth": "^1.7.0",
-    "dotenv": "^16.4.0"
+    "word-extractor": "^1.0.4"
   }
 }
